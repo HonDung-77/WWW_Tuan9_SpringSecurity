@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Spring Data JDBC + Spring Security</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+
+<div class="container py-4">
+    <!-- THANH HIỂN THỊ THÔNG TIN ĐĂNG NHẬP (Trang 91 PDF)[cite: 24] -->
+    <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-white rounded shadow-sm">
+        <div>
+            <span sec:authorize="isAuthenticated()">
+                Xin chào: <strong class="text-primary" sec:authentication="name"></strong>
+                (Vai trò: <span class="badge bg-info text-dark" sec:authentication="principal.authorities"></span>)
+            </span>
+        </div>
+        <div>
+            <form th:action="@{/logout}" method="post" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Đăng xuất</button>
+            </form>
+        </div>
+    </div>
+
+    <h2 class="mb-4 text-primary text-center fw-bold">QUẢN LÝ NHÂN VIÊN</h2>
+
+    <!-- BỘ LỌC TÌM KIẾM -->
+    <div class="card mb-4 bg-white shadow-sm">
+        <div class="card-body p-3">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <form th:action="@{/employees/search/name}" method="get">
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="name" class="form-control" placeholder="Tìm theo Tên" required>
+                            <button class="btn btn-outline-primary" type="submit">Lọc</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- LƯƠNG NHẠY CẢM: CHỈ CHỜ ADMIN HOẶC USER XEM (Trang 93 PDF) -->
+                <div class="col-md-3" sec:authorize="hasAnyRole('ADMIN', 'USER')">
+                    <form th:action="@{/employees/search/salary}" method="get">
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="any" name="salary" class="form-control" placeholder="Lương lớn hơn (>)" required>
+                            <button class="btn btn-outline-primary" type="submit">Lọc Lương</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHỈ ADMIN HOẶC USER MỚI THẤY NÚT THÊM & THỐNG KÊ (Trang 93 PDF)[cite: 26] -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a th:href="@{/employees/new}" sec:authorize="hasAnyRole('ADMIN', 'USER')" class="btn btn-success btn-sm fw-bold">+ Thêm Nhân Viên Mới</a>
+        <div>
+            <a th:href="@{/employees/reports}" sec:authorize="hasAnyRole('ADMIN', 'USER')" class="btn btn-info btn-sm text-white me-2">Xem Báo Cáo Thống Kê</a>
+            <a th:href="@{/employees}" class="btn btn-secondary btn-sm">Tải lại tất cả</a>
+        </div>
+    </div>
+
+    <!-- BẢNG DANH SÁCH -->
+    <div class="table-responsive bg-white rounded shadow-sm">
+        <table class="table table-hover table-striped align-middle mb-0">
+            <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Họ Tên</th>
+                <th>Vai Trò</th>
+                <th>Tuổi</th>
+                <!-- Ẩn cột Lương đối với GUEST -->
+                <th sec:authorize="hasAnyRole('ADMIN', 'USER')">Lương (VNĐ)</th>
+                <th>Mã PB</th>
+                <th>Mã VT</th>
+                <th class="text-center" sec:authorize="hasAnyRole('ADMIN', 'USER')">Thao tác</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="emp : ${employees}">
+                <td th:text="${emp.id}"></td>
+                <td th:text="${emp.name}"></td>
+                <td th:text="${emp.role}"></td>
+                <td th:text="${emp.age}"></td>
+                <!-- Lương chỉ hiện với ADMIN / USER -->
+                <td sec:authorize="hasAnyRole('ADMIN', 'USER')" th:text="${#numbers.formatDecimal(emp.salary, 0, 'COMMA', 0, 'POINT')}"></td>
+                <td th:text="${emp.departmentId}"></td>
+                <td th:text="${emp.positionId}"></td>
+                <td class="text-center" sec:authorize="hasAnyRole('ADMIN', 'USER')">
+                    <!-- Sửa: ADMIN & USER -->
+                    <a th:href="@{/employees/edit/{id}(id=${emp.id})}" class="btn btn-sm btn-outline-warning me-1">Sửa</a>
+
+                    <!-- Xóa: CHỈ ADMIN MỚI CÓ NÚT XÓA (Trang 93 PDF)[cite: 26] -->
+                    <form th:action="@{/employees/delete/{id}(id=${emp.id})}" method="post" class="d-inline" sec:authorize="hasRole('ADMIN')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xóa nhân viên này?')">Xóa</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>
